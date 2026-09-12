@@ -4,18 +4,18 @@ A small, Vue-focused learning project built with Vue 3, TypeScript, Vite, Pinia,
 
 ## Learning goal
 
-The main feature is user management:
+The main feature is intentionally small: user management.
 
 - Create a user with a validated Vuetify form.
-- Search users from the backend.
-- Show users in a simple card/list UI using `v-for` (no data table/grid abstraction).
+- Search users from the backend using an Options API watcher, debounce, and request cancellation.
+- Show users with a simple `v-for` card/list UI rather than a data-grid component.
+- Demonstrate a normal named slot and a scoped slot in the list component.
 - View full user details in a dialog.
-- Edit an existing user.
+- Reuse the same form to edit an existing user.
 - Delete a user with confirmation.
 - Use Pinia for shared server-backed user state and CRUD actions.
-- Keep temporary UI/form state local when it does not need to be shared.
-- Demonstrate normal named slots and scoped slots naturally in the user-list UI.
-- Demonstrate debounce and request cancellation in backend search when they solve a real problem.
+- Keep form fields, dialog visibility, and other temporary UI state local.
+- Show backend field errors (for example duplicate email) next to the relevant form field.
 
 The feature is implemented with the **Options API first**. A separate Composition API implementation will be added later without replacing the Options API version, so both approaches can be compared side-by-side.
 
@@ -26,4 +26,25 @@ client/   Vue 3 + TypeScript + Vuetify + Pinia
 server/   Small Express + MongoDB API used only to make the Vue examples dynamic
 ```
 
-The code intentionally contains learning-oriented comments and JSDoc/TSDoc around Vue/TypeScript syntax that may be unfamiliar. Trivial statements are not commented just for the sake of adding comments.
+The code intentionally contains learning-oriented comments and JSDoc around Vue/TypeScript syntax that may be unfamiliar. Trivial statements are not commented just for the sake of adding comments.
+
+## Run locally
+
+1. Start MongoDB locally, or use any MongoDB connection URI.
+2. Copy `server/.env.example` to `server/.env`.
+3. Copy `client/.env.example` to `client/.env` if you want to override the default API URL.
+4. Install dependencies:
+
+```bash
+npm install --prefix server
+npm install --prefix client
+```
+
+5. In separate terminals run:
+
+```bash
+npm run dev:server
+npm run dev:client
+```
+
+Open `http://localhost:5173/options/users`.
