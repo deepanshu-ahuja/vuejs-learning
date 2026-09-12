@@ -7,7 +7,7 @@ A small, Vue-focused learning project built with Vue 3, TypeScript, Vite, Pinia,
 The main feature is intentionally small: user management.
 
 - Create a user with a validated Vuetify form.
-- Search users from the backend using an Options API watcher, debounce, and request cancellation.
+- Search users from the backend with debounce and request cancellation.
 - Show users with a simple `v-for` card/list UI rather than a data-grid component.
 - Demonstrate a normal named slot and a scoped slot in the list component.
 - View full user details in a dialog.
@@ -17,7 +17,30 @@ The main feature is intentionally small: user management.
 - Keep form fields, dialog visibility, and other temporary UI state local.
 - Show backend field errors (for example duplicate email) next to the relevant form field.
 
-The feature is implemented with the **Options API first**. A separate Composition API implementation will be added later without replacing the Options API version, so both approaches can be compared side-by-side.
+The same feature now exists in two independent Vue implementations:
+
+- `/options/users` — Options API components + Option-style Pinia store.
+- `/composition/users` — `<script setup>` Composition API components + setup-style Pinia store.
+
+The Options API implementation remains intact so the two styles can be compared side-by-side. Pure TypeScript modules such as the API adapter, user types, and age utility are reused because they are not tied to either Vue API style.
+
+## What to compare
+
+```text
+Options API                         Composition API
+-----------                         ---------------
+data()                              ref() / reactive()
+computed: {}                        computed()
+watch: {}                           watch()
+methods: {}                         ordinary functions
+mounted()                           onMounted()
+beforeUnmount()                     onBeforeUnmount()
+mapState() / mapActions()           storeToRefs() + direct store actions
+modelValue + update:modelValue      defineModel()
+component public instance methods   defineExpose()
+```
+
+The Composition version also uses a small `useSnackbar()` composable to demonstrate reusable local reactive logic without turning snackbar state into a global store.
 
 ## Project structure
 
@@ -47,4 +70,9 @@ npm run dev:server
 npm run dev:client
 ```
 
-Open `http://localhost:5173/options/users`.
+Open either:
+
+```text
+http://localhost:5173/options/users
+http://localhost:5173/composition/users
+```
