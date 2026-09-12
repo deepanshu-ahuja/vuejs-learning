@@ -17,6 +17,11 @@ This repository exists to learn modern Vue through one small, realistic CRUD fea
 3. Composition API should live in a separate feature area/route so both styles remain comparable.
 4. Use composables only when reusable Vue/reactive behavior genuinely benefits from them.
 
+## Current learning UI scope
+- Keep the user list intentionally simple and render it with `v-for` and ordinary Vuetify cards/layout.
+- Do not introduce `VDataTable`, AG Grid, or another data-grid abstraction unless explicitly requested later.
+- Prefer a small number of components that naturally demonstrate Vue concepts over a catalog of Vuetify components.
+
 ## State ownership
 - Use Pinia for shared server-backed user state and CRUD actions in this learning project.
 - Keep form fields, dialog open/closed state, and other local UI state inside the component that owns it unless multiple unrelated areas genuinely need it.
@@ -27,6 +32,7 @@ This repository exists to learn modern Vue through one small, realistic CRUD fea
 - Components call Pinia actions for shared user CRUD flows.
 - Pinia actions call a small API module.
 - Keep the Node/Mongo backend deliberately simple; the learning focus is Vue.
+- Do not add controller/service/repository layers merely to make the backend look larger. Add structure only when it solves a real problem.
 
 ## Vuetify conventions
 Use this order when implementing UI:
@@ -56,7 +62,7 @@ Add comments for:
 - debounce/cancellation and stale-request problems;
 - TypeScript syntax/contracts a Vue learner may not immediately understand.
 
-Do not add comments that merely restate obvious code, such as `// set loading to true` immediately above `loading = true`.
+Comments should make strange or easy-to-misunderstand syntax understandable to someone still learning Vue. Do not comment ordinary assignments, obvious control flow, or every line just to increase comment count.
 
 Use JSDoc/TSDoc for API functions, store actions, utilities, and component methods where the contract or rationale is useful.
 
