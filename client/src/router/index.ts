@@ -15,6 +15,13 @@ const router = createRouter({
       name: 'options-users',
       component: UsersOptionsView,
     },
+    {
+      path: '/composition/users',
+      name: 'composition-users',
+      // Dynamic import lazy-loads this route. The Composition implementation
+      // stays physically separate from the frozen Options API implementation.
+      component: () => import('@/features/users-composition/views/UsersCompositionView.vue'),
+    },
   ],
 })
 
