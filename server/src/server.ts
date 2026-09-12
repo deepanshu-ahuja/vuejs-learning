@@ -1,5 +1,10 @@
+import 'dotenv/config'
+
 import cors from 'cors'
 import express from 'express'
+
+import { connectDatabase } from './config/database.js'
+import userRoutes from './routes/user.routes.js'
 
 const app = express()
 const port = Number(process.env.PORT ?? 3000)
@@ -13,6 +18,23 @@ app.get('/api/health', (_request, response) => {
   response.json({ ok: true })
 })
 
-app.listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`)
-})
+app.use('/api/users', userRoutes)
+
+/**
+ * Connect to Mongo before accepting HTTP traffic. If the DB connection fails,
+ * starting an apparently healthy API would only make every CRUD request fail.
+ */
+async function startServer(): Promise<void> {
+  try {
+    await connectDatabase()
+
+    app.listen(port, () => {
+      console.log(`API listening on http://localhost:${port}`)
+    })
+  } catch (error: unknown) {
+    console.error('Unable to start API:', error)
+    process.exitCode = 1
+  }
+}
+
+void startServer()
