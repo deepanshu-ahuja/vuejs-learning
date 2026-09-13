@@ -10,6 +10,8 @@ import type { User, UserInput } from '../types/user'
  */
 export function getUsers(search: string | null = '', signal?: AbortSignal): Promise<User[]> {
   const query = new URLSearchParams()
+  // A clearable Vuetify field can emit null. `?.` skips trim for null/undefined;
+  // `??` then supplies ''. An empty search means fetch the unfiltered list.
   const normalizedSearch = search?.trim() ?? ''
 
   if (normalizedSearch) {

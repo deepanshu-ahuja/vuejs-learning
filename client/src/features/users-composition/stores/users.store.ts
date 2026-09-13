@@ -15,10 +15,12 @@ import type { User, UserInput } from '@/features/users-options/types/user'
  * - `actions: { ... }` becomes ordinary functions.
  * - returned refs/functions become the store's public API.
  */
+// defineStore declares a store; calling useUsersStore/useUsersCompositionStore
+// obtains its instance for this app. The two ids keep the learning routes' state
+// independent even though both implementations use the same backend users.
 export const useUsersCompositionStore = defineStore('users-composition', () => {
   const users = ref<User[]>([])
   const loading = ref(false)
-  const saving = ref(false)
   const deleting = ref(false)
   const error = ref<string | null>(null)
 
@@ -45,6 +47,7 @@ export const useUsersCompositionStore = defineStore('users-composition', () => {
     try {
       users.value = await usersApi.getUsers(search, controller.signal)
     } catch (caughtError: unknown) {
+      // Cancelling an old search is expected, so do not show it as a failure.
       if (caughtError instanceof DOMException && caughtError.name === 'AbortError') {
         return
       }
@@ -62,28 +65,22 @@ export const useUsersCompositionStore = defineStore('users-composition', () => {
     }
   }
 
-  /** Create a user through the shared API module. */
+  /**
+   * Save through the API and return its record. The page reloads the list using
+   * its current search, so we do not blindly insert a potentially nonmatching user.
+   * No catch here: failures go back to the page for field errors/snackbar feedback.
+   * The page owns its busy flag because it also coordinates the list refresh.
+   * Returning the API Promise lets the page await success or catch a failure.
+   */
   async function createUser(input: UserInput): Promise<User> {
-    saving.value = true
     error.value = null
-
-    try {
-      return await usersApi.createUser(input)
-    } finally {
-      saving.value = false
-    }
+    return usersApi.createUser(input)
   }
 
   /** Update one existing user. */
   async function updateUser(userId: string, input: UserInput): Promise<User> {
-    saving.value = true
     error.value = null
-
-    try {
-      return await usersApi.updateUser(userId, input)
-    } finally {
-      saving.value = false
-    }
+    return usersApi.updateUser(userId, input)
   }
 
   /** Delete one existing user. */
@@ -103,7 +100,6 @@ export const useUsersCompositionStore = defineStore('users-composition', () => {
   return {
     users,
     loading,
-    saving,
     deleting,
     error,
     fetchUsers,

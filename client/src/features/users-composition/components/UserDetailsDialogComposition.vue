@@ -21,6 +21,7 @@ function close(): void {
   open.value = false
 }
 
+/** Ask the page to switch from Details to Edit; this dialog does not save data. */
 function editUser(): void {
   if (props.user) {
     emit('edit', props.user)

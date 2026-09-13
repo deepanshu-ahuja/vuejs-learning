@@ -47,10 +47,22 @@ const userSchema = new Schema<UserRecord>(
       type: String,
       required: [true, 'Date of birth is required.'],
       match: [/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must use YYYY-MM-DD.'],
-      validate: {
-        validator: (value: string) => value <= new Date().toISOString().slice(0, 10),
-        message: 'Date of birth cannot be in the future.',
-      },
+      validate: [
+        {
+          // Date parsing can normalize February 31 into March. Round-trip the
+          // UTC date to reject normalization, invalid months, and invalid days.
+          validator: (value: string) => {
+            const date = new Date(`${value}T00:00:00.000Z`)
+            return Number.isFinite(date.getTime())
+              && date.toISOString().slice(0, 10) === value
+          },
+          message: 'Date of birth must be a valid calendar date.',
+        },
+        {
+          validator: (value: string) => value <= new Date().toISOString().slice(0, 10),
+          message: 'Date of birth cannot be in the future.',
+        },
+      ],
     },
     bio: {
       type: String,

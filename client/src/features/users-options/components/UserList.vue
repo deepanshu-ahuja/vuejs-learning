@@ -16,6 +16,8 @@ export default defineComponent({
 
 <template>
   <div v-if="users.length" class="d-flex flex-column ga-3">
+    <!-- A stable id lets Vue match each card to its user when a search or save
+         changes list order. An array index identifies a position, not a user. -->
     <div
       v-for="(user, index) in users"
       :key="user.id"
@@ -25,6 +27,7 @@ export default defineComponent({
         current `user` and `index`; `:user` / `:index` expose those values to
         whatever markup the parent chooses to render for each item.
       -->
+      <!-- Content inside slot is the fallback when the parent supplies no #item. -->
       <slot name="item" :user="user" :index="index">
         <VCard variant="outlined">
           <VCardText>{{ user.name }}</VCardText>

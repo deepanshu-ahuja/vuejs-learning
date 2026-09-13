@@ -33,6 +33,14 @@ export default defineComponent({
 </script>
 
 <template>
+  <!-- persistent prevents Escape/outside-click dismissal. Cancel is also disabled
+       during deletion so the confirmation stays present until the result arrives. -->
+  <!--
+    The parent owns open/closed state. Its v-model="open" expands to
+    :model-value="open" and @update:model-value="open = $event".
+    This wrapper passes the value into Vuetify and forwards its update event
+    back up. $event is the new boolean. This avoids assigning to our prop.
+  -->
   <VDialog
     :model-value="modelValue"
     max-width="460"

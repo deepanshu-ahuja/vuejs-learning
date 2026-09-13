@@ -1,4 +1,7 @@
-/** Roles accepted by both the form and the backend. */
+/**
+ * A string-literal union permits only these spellings in TypeScript code.
+ * Types disappear at runtime, so the backend independently checks allowed values.
+ */
 export type UserRole = 'admin' | 'developer' | 'viewer'
 
 export type UserStatus = 'active' | 'inactive'

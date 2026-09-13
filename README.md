@@ -76,3 +76,12 @@ Open either:
 http://localhost:5173/options/users
 http://localhost:5173/composition/users
 ```
+
+## Frontend build tooling
+
+The frontend pins TypeScript 5.9.3 because the current `vue-tsc` integration uses
+the JavaScript compiler API that TypeScript 7 no longer exports.
+
+`skipLibCheck` skips incompatible third-party declaration internals while strict
+type-checking remains enabled for application code. Node types support the Vite
+configuration.

@@ -25,14 +25,14 @@ const SEARCH_DEBOUNCE_MS = 350
 const usersStore = useUsersCompositionStore()
 
 /*
- * A Pinia store unwraps refs on the store object. If we destructured state
- * directly (`const { users } = usersStore`), we would lose reactive linkage.
- * `storeToRefs()` creates refs for state/getters while actions stay on the store.
+ * storeToRefs gives each variable a live connection to Pinia state. For example,
+ * when fetchUsers replaces the users array, users.value here sees the new array.
+ * Plain `const { users } = usersStore` would keep the previously read array.
+ * Actions are functions, so call usersStore.createUser(...) directly.
  */
 const {
   users,
   loading,
-  saving,
   deleting,
   error,
 } = storeToRefs(usersStore)
@@ -48,6 +48,13 @@ const editDialogOpen = ref(false)
 const deleteDialogOpen = ref(false)
 const selectedUser = ref<User | null>(null)
 
+// Each form has one busy flag for its whole operation: save, reload the list,
+// then reset Create or close Edit. Keep these here because the page coordinates
+// those steps; Pinia only performs the user API actions.
+// ref(false) makes a reactive boolean: use .value in script; Vue unwraps it
+// automatically in the template.
+const creating = ref(false)
+const editing = ref(false)
 const createFieldErrors = ref<ApiFieldErrors>({})
 const editFieldErrors = ref<ApiFieldErrors>({})
 
@@ -59,7 +66,11 @@ const createUserForm = ref<InstanceType<typeof UserFormComposition> | null>(null
 
 const { snackbar, showSnackbar } = useSnackbar()
 
-/** Derive the exact editable shape expected by UserFormComposition. */
+/**
+ * computed derives form input from selectedUser and caches it until the reactive
+ * values it reads change. Selecting Bob after Alice produces Bob's input fields.
+ * It returns data; the search watcher below instead starts an external request.
+ */
 const selectedUserInput = computed<UserInput | null>(() => {
   if (!selectedUser.value) return null
 
@@ -83,9 +94,12 @@ const selectedUserInput = computed<UserInput | null>(() => {
 })
 
 /*
- * `watch()` is appropriate because changing searchText causes an external side
- * effect: fetching from the backend. Debounce waits until typing pauses.
- * Request cancellation itself stays in Pinia because it belongs to the request.
+ * Watches the searchText ref, updated by the search box's v-model.
+ * Type 'a', then 'al' within 350 ms: replace the first timer. A request starts
+ * only when typing pauses for 350 ms (debounce). A ref can be passed directly
+ * to watch; a prop needs a getter, as in the form's initialValue watcher.
+ * Cancelling a timer cannot stop an HTTP request already sent; Pinia handles
+ * that with AbortController.
  */
 watch(searchText, () => {
   if (searchTimer) clearTimeout(searchTimer)
@@ -95,17 +109,21 @@ watch(searchText, () => {
   }, SEARCH_DEBOUNCE_MS)
 })
 
-// `onMounted` is the Composition API lifecycle equivalent of Options `mounted`.
+// Run once when this page enters the UI, so the first list appears without a
+// search. `void` discards the Promise; fetchUsers handles list-loading failures.
 onMounted(() => {
   void usersStore.fetchUsers()
 })
 
+// When leaving this page, prevent its pending timer from starting another search.
 onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer)
 })
 
 /** Create a user, refresh the active search, then reset only the Create form. */
 async function handleCreateUser(input: UserInput): Promise<void> {
+  if (creating.value) return
+  creating.value = true
   createFieldErrors.value = {}
 
   try {
@@ -116,6 +134,9 @@ async function handleCreateUser(input: UserInput): Promise<void> {
   } catch (caughtError: unknown) {
     createFieldErrors.value = getFieldErrors(caughtError)
     showSnackbar(getErrorMessage(caughtError, 'Unable to create user.'), 'error')
+  } finally {
+    // finally runs after success OR failure, allowing the next save/retry.
+    creating.value = false
   }
 }
 
@@ -124,6 +145,7 @@ function openDetails(user: User): void {
   detailsDialogOpen.value = true
 }
 
+/** Select the record before opening Edit; the child receives its fields as initialValue. */
 function openEdit(user: User): void {
   selectedUser.value = user
   editFieldErrors.value = {}
@@ -131,25 +153,30 @@ function openEdit(user: User): void {
   editDialogOpen.value = true
 }
 
+/** Open confirmation only. The API delete happens after the user confirms. */
 function requestDelete(user: User): void {
   selectedUser.value = user
   deleteDialogOpen.value = true
 }
 
 async function handleEditUser(input: UserInput): Promise<void> {
-  if (!selectedUser.value) return
+  if (!selectedUser.value || editing.value) return
 
+  editing.value = true
   editFieldErrors.value = {}
 
   try {
     await usersStore.updateUser(selectedUser.value.id, input)
+    await usersStore.fetchUsers(searchText.value)
     editDialogOpen.value = false
     selectedUser.value = null
-    await usersStore.fetchUsers(searchText.value)
     showSnackbar('User updated successfully.', 'success')
   } catch (caughtError: unknown) {
     editFieldErrors.value = getFieldErrors(caughtError)
     showSnackbar(getErrorMessage(caughtError, 'Unable to update user.'), 'error')
+  } finally {
+    // Unlock after failure too, so the user can correct the draft and retry.
+    editing.value = false
   }
 }
 
@@ -165,6 +192,7 @@ async function confirmDelete(user: User): Promise<void> {
   }
 }
 
+/** Typing/reset emits a field name; remove just its server message from the UI. */
 function clearCreateFieldError(fieldName: keyof UserInput): void {
   delete createFieldErrors.value[fieldName]
 }
@@ -173,6 +201,10 @@ function clearEditFieldError(fieldName: keyof UserInput): void {
   delete editFieldErrors.value[fieldName]
 }
 
+/**
+ * A caught value is unknown: check its class before reading fieldErrors.
+ * API validation failures carry field messages; network errors usually do not.
+ */
 function getFieldErrors(caughtError: unknown): ApiFieldErrors {
   return caughtError instanceof ApiError ? caughtError.fieldErrors : {}
 }
@@ -186,6 +218,8 @@ function getErrorMessage(caughtError: unknown, fallback: string): string {
   <VContainer class="py-8">
     <h1 class="mb-6">Users — Composition API</h1>
 
+    <!-- Vuetify uses 12 columns: each section spans the full width on small
+         screens; at lg and above the form/list share a row as 5 + 7 columns. -->
     <VRow>
       <VCol cols="12" lg="5">
         <VCard rounded="lg" elevation="1">
@@ -193,9 +227,14 @@ function getErrorMessage(caughtError: unknown, fallback: string): string {
           <VCardSubtitle>Composition API + TypeScript + Vuetify</VCardSubtitle>
 
           <VCardText>
+            <!--
+              Values flow down through props (:submitting, :field-errors).
+              Events flow up: the child's submit event carries UserInput to
+              handleCreateUser. The page saves through Pinia and supplies errors.
+            -->
             <UserFormComposition
               ref="createUserForm"
-              :submitting="saving"
+              :submitting="creating"
               :field-errors="createFieldErrors"
               @submit="handleCreateUser"
               @clear-field-error="clearCreateFieldError"
@@ -227,7 +266,11 @@ function getErrorMessage(caughtError: unknown, fallback: string): string {
             </VAlert>
           </template>
 
-          <!-- Scoped slot: the child exposes each current user to this markup. -->
+          <!--
+            #item is shorthand for v-slot:item. { user } receives the current
+            loop item supplied by UserList's <slot :user="user">. The child
+            chooses which item; this parent chooses how its card looks.
+          -->
           <template #item="{ user }">
             <VCard variant="outlined" rounded="lg">
               <VCardText>
@@ -272,7 +315,7 @@ function getErrorMessage(caughtError: unknown, fallback: string): string {
         <VCardText>
           <UserFormComposition
             :initial-value="selectedUserInput"
-            :submitting="saving"
+            :submitting="editing"
             :field-errors="editFieldErrors"
             submit-label="Update user"
             @submit="handleEditUser"
@@ -284,7 +327,7 @@ function getErrorMessage(caughtError: unknown, fallback: string): string {
           <VSpacer />
           <VBtn
             variant="text"
-            :disabled="saving"
+            :disabled="editing"
             @click="editDialogOpen = false"
           >
             Close

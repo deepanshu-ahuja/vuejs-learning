@@ -62,7 +62,8 @@ Add comments for:
 - debounce/cancellation and stale-request problems;
 - TypeScript syntax/contracts a Vue learner may not immediately understand.
 
-Comments should make strange or easy-to-misunderstand syntax understandable to someone still learning Vue. Do not comment ordinary assignments, obvious control flow, or every line just to increase comment count.
+Comments should make strange or easy-to-misunderstood syntax understandable to someone still learning Vue.
+For unfamiliar behavior, explain what triggers it, what data it reads/changes, and why it is needed. Use a short concrete example when helpful (such as switching an Edit form from Alice to Bob). Explain terms such as `nextTick`, refs, and event forwarding where they are used instead of assuming the reader already knows them. Keep comments accurate about which component owns state and what asynchronous work is actually awaited. Do not comment ordinary assignments, obvious control flow, or every line just to increase comment count.
 
 Use JSDoc/TSDoc for API functions, store actions, utilities, and component methods where the contract or rationale is useful.
 

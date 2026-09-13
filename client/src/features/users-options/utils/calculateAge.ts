@@ -5,6 +5,8 @@
  * reactivity, lifecycle, refs, or component state.
  */
 export function calculateAge(dateOfBirth: string, today = new Date()): number {
+  // Midnight without Z is local time. A date-only parse would use UTC and can
+  // shift the calendar day in some timezones before getMonth/getDate are read.
   const birthDate = new Date(`${dateOfBirth}T00:00:00`)
   let age = today.getFullYear() - birthDate.getFullYear()
 

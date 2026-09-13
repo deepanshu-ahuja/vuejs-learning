@@ -18,8 +18,8 @@ const router = createRouter({
     {
       path: '/composition/users',
       name: 'composition-users',
-      // Dynamic import lazy-loads this route. The Composition implementation
-      // stays physically separate from the frozen Options API implementation.
+      // Fetch this page's code when this route is first visited (lazy loading).
+      // Separate routes keep both Vue styles available for comparison.
       component: () => import('@/features/users-composition/views/UsersCompositionView.vue'),
     },
   ],

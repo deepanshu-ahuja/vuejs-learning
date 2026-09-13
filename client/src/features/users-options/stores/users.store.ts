@@ -15,11 +15,13 @@ let usersRequestController: AbortController | null = null
  * We intentionally keep things such as "is the details dialog open?" out of
  * this store because that state belongs only to the component displaying it.
  */
+// defineStore declares a store; calling useUsersStore/useUsersCompositionStore
+// obtains its instance for this app. The two ids keep the learning routes' state
+// independent even though both implementations use the same backend users.
 export const useUsersStore = defineStore('users-options', {
   state: () => ({
     users: [] as User[],
     loading: false,
-    saving: false,
     deleting: false,
     error: null as string | null,
   }),
@@ -43,6 +45,7 @@ export const useUsersStore = defineStore('users-options', {
       try {
         this.users = await usersApi.getUsers(search, controller.signal)
       } catch (error: unknown) {
+        // Cancelling an old search is expected, so do not show it as a failure.
         if (error instanceof DOMException && error.name === 'AbortError') {
           return
         }
@@ -58,28 +61,22 @@ export const useUsersStore = defineStore('users-options', {
       }
     },
 
-    /** Creates a user through the API and returns the server-created record. */
+    /**
+     * Save through the API and return its record. The page reloads the list using
+     * its current search, so we do not blindly insert a potentially nonmatching user.
+     * No catch here: failures go back to the page for field errors/snackbar feedback.
+     * The page owns its busy flag because it also coordinates the list refresh.
+     * Returning the API Promise lets the page await success or catch a failure.
+     */
     async createUser(input: UserInput): Promise<User> {
-      this.saving = true
       this.error = null
-
-      try {
-        return await usersApi.createUser(input)
-      } finally {
-        this.saving = false
-      }
+      return usersApi.createUser(input)
     },
 
     /** Updates a user through the API and returns the latest server record. */
     async updateUser(userId: string, input: UserInput): Promise<User> {
-      this.saving = true
       this.error = null
-
-      try {
-        return await usersApi.updateUser(userId, input)
-      } finally {
-        this.saving = false
-      }
+      return usersApi.updateUser(userId, input)
     },
 
     /** Deletes a user through the API. */

@@ -1,3 +1,5 @@
+// Vite supplies VITE_* values to browser code. `??` uses the local default only
+// when the setting is null/undefined. These client settings must not hold secrets.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api'
 
 /**
@@ -49,6 +51,8 @@ export async function apiRequest<T>(
     },
   })
 
+  // fetch rejects for network failures, but resolves even for HTTP 400/409/500.
+  // Turn those responses into thrown ApiErrors so the page's catch handles them.
   if (!response.ok) {
     let errorBody: ApiErrorBody = {}
 
@@ -75,5 +79,6 @@ export async function apiRequest<T>(
 
   // `T` is a TypeScript generic. It lets the caller describe the expected
   // response shape, for example `apiRequest<User[]>('/users')`.
+  // This type assertion helps the editor; it does not validate server JSON at runtime.
   return response.json() as Promise<T>
 }
